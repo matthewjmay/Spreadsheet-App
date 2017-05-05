@@ -61,10 +61,10 @@ private:
     QAction *openAction;
     QAction *saveAction;
     QAction *saveAsAction;
-  //  QAction *deleteAction;
-    //QAction *cutAction;
-    //QAction *copyAction;
-    //QAction *pasteAction;
+    QAction *deleteAction;
+    QAction *cutAction;
+    QAction *copyAction;
+    QAction *pasteAction;
     QAction *exitAction;
     QAction *selectAllAction;
     QAction *showGridAction;

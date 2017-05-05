@@ -1,23 +1,29 @@
-#include <QWidget>
+#include <QtWidgets>
 #include <QtGui>
+#include "qmenu.h"
+#include "qmenubar.h"
 
 #include "mainwindow.h"
 #include "finddialog.h"
 #include "sortdialog.h"
-#include "spreadsheet.h"
+#include "gotocell.h"
+//#include "spreadsheet.h"
 
-MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent)
+MainWindow::MainWindow()
 {
     spreadsheet = new Spreadsheet;
     setCentralWidget(spreadsheet);
+
     createActions();
     createMenus();
     createContextMenu();
     createToolBars();
     createStatusBar();
+
     readSettings();
+
     findDialog = 0;
+
     setWindowIcon(QIcon(":/images/icon.png"));
     setCurrentFile("");
 }
@@ -47,10 +53,29 @@ void MainWindow::createActions(){
         connect(recentFileActions[i], SIGNAL(triggered()), this, SLOT(openRecentFile()));
     }
 
-    exitAction = new QAction(tr("E&xit"), this);
+    /*
+    deleteAction = new QAction(tr("Delete"), this);
+    deleteAction->setIcon(QIcon(":/images/saveas.png"));
+    deleteAction->setShortcut(QKeySequence::Delete);
+    deleteAction->setStatusTip(tr("Delete"));
+    connect(deleteAction, SIGNAL(triggered()), this, SLOT(delete()));
+    */
+
+    cutAction = new QAction(tr("Cut"), this);
+    cutAction->setShortcut(tr("Ctrl+X"));
+    cutAction->setStatusTip(tr("Cut"));
+    connect(exitAction, SIGNAL(triggered()), this, SLOT(cut()));
+
+    copyAction = new QAction(tr("E&xit"), this);
     exitAction->setShortcut(tr("Ctrl+Q"));
     exitAction->setStatusTip(tr("Exit the application"));
     connect(exitAction, SIGNAL(triggered()), this, SLOT(close()));
+
+    pasteAction = new QAction(tr("E&xit"), this);
+    exitAction->setShortcut(tr("Ctrl+Q"));
+    exitAction->setStatusTip(tr("Exit the application"));
+    connect(exitAction, SIGNAL(triggered()), this, SLOT(close()));
+
 
     selectAllAction = new QAction(tr("&All"), this);
     selectAllAction->setShortcut(QKeySequence::SelectAll);
@@ -135,104 +160,165 @@ void MainWindow::createToolBars()
 
 void MainWindow::createStatusBar()
 {
- locationLabel = new QLabel(" W999 ");
- locationLabel->setAlignment(Qt::AlignHCenter);
- locationLabel->setMinimumSize(locationLabel->sizeHint());
- formulaLabel = new QLabel;
- formulaLabel->setIndent(3);
- statusBar()->addWidget(locationLabel);
- statusBar()->addWidget(formulaLabel, 1);
- connect(spreadsheet, SIGNAL(currentCellChanged(int, int, int, int)),
- this, SLOT(updateStatusBar()));
- connect(spreadsheet, SIGNAL(modified()),
- this, SLOT(spreadsheetModified()));
- updateStatusBar();
+    locationLabel = new QLabel(" W999 ");
+    locationLabel->setAlignment(Qt::AlignHCenter);
+    locationLabel->setMinimumSize(locationLabel->sizeHint());
+    formulaLabel = new QLabel;
+    formulaLabel->setIndent(3);
+    statusBar()->addWidget(locationLabel);
+    statusBar()->addWidget(formulaLabel, 1);
+    connect(spreadsheet, SIGNAL(currentCellChanged(int, int, int, int)),
+    this, SLOT(updateStatusBar()));
+    connect(spreadsheet, SIGNAL(modified()),
+    this, SLOT(spreadsheetModified()));
+    updateStatusBar();
 }
 
 void MainWindow::updateStatusBar()
 {
- locationLabel->setText(spreadsheet->currentLocation());
- formulaLabel->setText(spreadsheet->currentFormula());
+    locationLabel->setText(spreadsheet->currentLocation());
+    formulaLabel->setText(spreadsheet->currentFormula());
 }
 
 void MainWindow::spreadsheetModified()
 {
- setWindowModified(true);
- updateStatusBar();
+    setWindowModified(true);
+    updateStatusBar();
 }
 
 void MainWindow::newFile()
 {
- if (okToContinue()) {
- spreadsheet->clear();
- setCurrentFile("");
- }
+    if (okToContinue()) {
+        spreadsheet->clear();
+        setCurrentFile("");
+    }
 }
 
-bool MainWindow::okToContinue()
-{
- if (isWindowModified()) {
- int r = QMessageBox::warning(this, tr("Spreadsheet"),
- tr("The document has been modified.\n"
- "Do you want to save your changes?"),
- QMessageBox::Yes | QMessageBox::No
- | QMessageBox::Cancel);
- if (r == QMessageBox::Yes) {
- return save();
- } else if (r == QMessageBox::Cancel) {
- return false;
- }
- }
- return true;
+bool MainWindow::okToContinue(){
+    if (isWindowModified()) {
+        int r = QMessageBox::warning(this, tr("Spreadsheet"),
+        tr("The document has been modified.\n"
+        "Do you want to save your changes?"),
+        QMessageBox::Yes | QMessageBox::No
+        | QMessageBox::Cancel);
+        if (r == QMessageBox::Yes) {
+            return save();
+        } else if (r == QMessageBox::Cancel) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void MainWindow::open()
 {
- if (okToContinue()) {
- QString fileName = QFileDialog::getOpenFileName(this,
- tr("Open Spreadsheet"), ".",
- tr("Spreadsheet files (*.sp)"));
- if (!fileName.isEmpty())
- loadFile(fileName);
- }
+    if (okToContinue()) {
+        QString fileName = QFileDialog::getOpenFileName(this,
+        tr("Open Spreadsheet"), ".",
+        tr("Spreadsheet files (*.sp)"));
+        if (!fileName.isEmpty())
+            loadFile(fileName);
+    }
 }
 
 bool MainWindow::loadFile(const QString &fileName)
 {
- if (!spreadsheet->readFile(fileName)) {
- statusBar()->showMessage(tr("Loading canceled"), 2000);
- return false;
- }
- setCurrentFile(fileName);
- statusBar()->showMessage(tr("File loaded"), 2000);
- return true;
+    if (!spreadsheet->readFile(fileName)) {
+        statusBar()->showMessage(tr("Loading canceled"), 2000);
+        return false;
+    }
+    setCurrentFile(fileName);
+    statusBar()->showMessage(tr("File loaded"), 2000);
+    return true;
 }
 
 bool MainWindow::save()
 {
- if (curFile.isEmpty()) {
- return saveAs();
- } else {
- return saveFile(curFile);
- }
+    if (curFile.isEmpty()) {
+        return saveAs();
+    } else {
+        return saveFile(curFile);
+    }
 }
+
 bool MainWindow::saveFile(const QString &fileName)
 {
- if (!spreadsheet->writeFile(fileName)) {
- statusBar()->showMessage(tr("Saving canceled"), 2000);
- return false;
- }
- setCurrentFile(fileName);
- statusBar()->showMessage(tr("File saved"), 2000);
- return true;
+    if (!spreadsheet->writeFile(fileName)) {
+        statusBar()->showMessage(tr("Saving canceled"), 2000);
+        return false;
+    }
+    setCurrentFile(fileName);
+    statusBar()->showMessage(tr("File saved"), 2000);
+    return true;
 }
 
 bool MainWindow::saveAs()
 {
- QString fileName = QFileDialog::getSaveFileName(this,
- tr("Save Spreadsheet"), ".",
- tr("Spreadsheet files (*.sp)"));
- if (fileName.isEmpty())
- return false;
- return saveFile(fileName);
+    QString fileName = QFileDialog::getSaveFileName(this,
+    tr("Save Spreadsheet"), ".",
+    tr("Spreadsheet files (*.sp)"));
+    if (fileName.isEmpty())
+        return false;
+    return saveFile(fileName);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (okToContinue()) {
+        writeSettings();
+        event->accept();
+    } else {
+        event->ignore();
+    }
+}
+
+void MainWindow::setCurrentFile(const QString &fileName)
+{
+    curFile = filename;
+    setWindowModified(false);
+    QString shownName = tr("Untitled");
+    if (!curFile.isEmpty()) {
+        //fileName is currently full path, we only want to display user readable name
+        shownName = strippedName(curFile);
+        recentFiles.removeAll(curFile);
+        recentFiles.prepend(curFile);
+        updateRecentFileActions();
+    }
+
+    setWindowTitle(tr("%1[*] - %2").arg(shownName).arg(tr("Spreadsheet")));
+}
+
+//Remove path
+QString MainWindow::strippedName(const QString &fullFileName)
+{
+    return QFileInfo(fullFileName).fileName();
+}
+
+void MainWindow::updateRecentFileActions()
+{
+    QMutableStringListIterator i(recentFiles);
+    while (i.hasNext()) {
+        if (!QFile::exists()(i.next()))
+            i.remove();
+    }
+
+    for (int j = 0; j < MaxRecentFiles; ++j) {
+        if (j < recentFiles.count()) {
+            QString text = tr("&%1 %2").arg(j+1).arg(strippedName(recentFiles[j]));
+            recentFileActions[j]->setText(text);
+            recentFileActions[j]->setData(recentFiles[j]);
+            recentFileActions[j]->setVisible(true);
+        } else {
+            recentFileActions[j]->setVisible(false);
+        }
+    }
+    separatorAction->setVisible(recentFiles.isEmpty());
+}
+
+void MainWindow::openRecentFile() {
+    if (okToContinue()) {
+        QAction *action = qobject_cast<QAction*>(sender());
+        if (action)
+            loadFile(action->data.toString());
+    }
 }
