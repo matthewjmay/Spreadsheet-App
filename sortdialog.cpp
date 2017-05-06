@@ -23,7 +23,7 @@ void Sortdialog::setColumnRange(QChar first, QChar last){
     PrimarycomboBox->setMinimumSize(SecondarycomboBox->sizeHint());
 
     QChar ch = first;
-    while (ch <=last){
+    while (ch <= last){
         PrimarycomboBox->addItem(QString(ch));
         SecondarycomboBox->addItem(QString(ch));
         TertiarycomboBox->addItem(QString(ch));

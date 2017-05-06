@@ -322,3 +322,52 @@ void MainWindow::openRecentFile() {
             loadFile(action->data.toString());
     }
 }
+
+void MainWindow::find()
+{
+    if (!findDialog) {
+        findDialog = new FindDialog(this);
+        connect(findDialog, &FindDialog::findNext, spreadsheet, &Spreadsheet::findNext);
+        connect(findDialog, &FindDialog::findPrev, spreadsheet, &Spreadsheet::findPrev);
+    }
+    findDialog->show();
+    findDialog->raise();
+    findDialog->activateWindow();
+}
+
+void MainWindow::goToCell()
+{
+    Gotocell dialog(this);
+    if (dialog.exec()) {
+        QString str = dialog.lineEdit->text().toUpper();
+        //QTableWidget starts at (0,0), so subtract 1 and 'A' ascii value to find location
+        spreadsheet->setCurrentCell(str.mid(1).toInt() - 1, str[0].unicode() - 'A');
+    }
+}
+
+//
+// See p. 81
+//
+
+void MainWindow::sort()
+{
+    Sortdialog dialog (this);
+    QTableWidgetSelectionRange range = spreadsheet->selectedRange();
+    dialog.setColumnRange('A' + range.leftColumn(), 'A' + range.rightColumn());
+    if (dialog.exec()) {
+        SpreadsheetCompare compare;
+        compare.keys[0] = dialog.PrimarycomboBox>currentIndex();
+        compare.keys[1] = dialog.SecondarycomboBox->currentIndex() - 1;
+        compare.keys[2] = dialog.TertiarycomboBox->currentIndex() - 1;
+        compare.ascending[0] = (dialog.PrimaryorderBox->currentIndex() == 0);
+        compare.ascending[1] = (dialog.PrimaryorderBox->currentIndex() == 0);
+        compare.ascending[2] = (dialog.PrimaryorderBox->currentIndex() == 0);
+        spreadsheet->sort(compare);
+    }
+}
+
+void MainWindow::about()
+{
+    QMessageBox::about(this, tr("About Spreadsheet"), tr("Cali or bust amirite"));
+}
+
