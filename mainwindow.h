@@ -68,6 +68,7 @@ private:
     QAction *exitAction;
     QAction *selectAllAction;
     QAction *showGridAction;
+    QAction *autoRecalcAction;
     QAction *aboutQtAction;
 };
 

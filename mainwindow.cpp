@@ -53,29 +53,29 @@ void MainWindow::createActions(){
         connect(recentFileActions[i], SIGNAL(triggered()), this, SLOT(openRecentFile()));
     }
 
-    /*
     deleteAction = new QAction(tr("Delete"), this);
-    deleteAction->setIcon(QIcon(":/images/saveas.png"));
+    deleteAction->setIcon(QIcon(":/images/delete.png"));
     deleteAction->setShortcut(QKeySequence::Delete);
     deleteAction->setStatusTip(tr("Delete"));
-    connect(deleteAction, SIGNAL(triggered()), this, SLOT(delete()));
-    */
+    connect(deleteAction, SIGNAL(triggered()), spreadsheet, SLOT(del);
 
     cutAction = new QAction(tr("Cut"), this);
-    cutAction->setShortcut(tr("Ctrl+X"));
+    cutAction->setIcon(QIcon(":/images/cut.png"));
+    cutAction->setShortcut(QKeySequence::Cut);
     cutAction->setStatusTip(tr("Cut"));
-    connect(exitAction, SIGNAL(triggered()), this, SLOT(cut()));
+    connect(exitAction, SIGNAL(triggered()), spreadsheet, SLOT(cut()));
 
-    copyAction = new QAction(tr("E&xit"), this);
-    exitAction->setShortcut(tr("Ctrl+Q"));
-    exitAction->setStatusTip(tr("Exit the application"));
-    connect(exitAction, SIGNAL(triggered()), this, SLOT(close()));
+    copyAction = new QAction(tr("Copy"), this);
+    copyAction->setIcon(QIcon(":/images/copy.png"));
+    copyAction->setShortcut(QKeySequence::Copy);
+    copyAction->setStatusTip(tr("Copy"));
+    connect(exitAction, SIGNAL(triggered()), spreadsheet, SLOT(copy()));
 
-    pasteAction = new QAction(tr("E&xit"), this);
-    exitAction->setShortcut(tr("Ctrl+Q"));
-    exitAction->setStatusTip(tr("Exit the application"));
-    connect(exitAction, SIGNAL(triggered()), this, SLOT(close()));
-
+    pasteAction = new QAction(tr("Paste"), this);
+    pasteAction->setIcon(QIcon(":/images/paste.png"));
+    pasteAction->setShortcut(QKeySequence::Paste);
+    pasteAction->setStatusTip(tr("Paste"));
+    connect(exitAction, SIGNAL(triggered()), spreadsheet, SLOT(paste()));
 
     selectAllAction = new QAction(tr("&All"), this);
     selectAllAction->setShortcut(QKeySequence::SelectAll);
@@ -371,3 +371,12 @@ void MainWindow::about()
     QMessageBox::about(this, tr("About Spreadsheet"), tr("Cali or bust amirite"));
 }
 
+void MainWindow::writeSettings()
+{
+    QSettings settings("Software Inc.", "Spreadsheet");
+
+    settings.setValue("geometry", saveGeometry());
+    settings.setValue("recentFiles", recentFiles);
+    settings.setValue("showGrid", showGridAction->isChecked());
+    settings.setValue("autoRecalc", autoRecalcAction->isChecked());
+}
