@@ -7,7 +7,7 @@
 #include "finddialog.h"
 #include "sortdialog.h"
 #include "gotocell.h"
-//#include "spreadsheet.h"
+#include "spreadsheet.h"
 
 MainWindow::MainWindow()
 {
@@ -19,6 +19,8 @@ MainWindow::MainWindow()
     createContextMenu();
     createToolBars();
     createStatusBar();
+
+    setAttribute(Qt::WA_DeleteOnClose);
 
     readSettings();
 
@@ -47,6 +49,16 @@ void MainWindow::createActions(){
     saveAsAction->setStatusTip(tr("Save new work"));
     connect(saveAsAction, SIGNAL(triggered()), this, SLOT(saveAs()));
 
+    closeAction = new QAction(tr("&Close"), this);
+    closeAction->setShortcut(QKeySequence::Close);
+    closeAction->setStatusTip(tr("Close this window"));
+    connect(closeAction, &QAction::triggered, this, &QMainWindow::close);
+
+    exitAction = new QAction(tr("E&xit"), this);
+    exitAction->setShortcut(tr("Ctrl+Q"));
+    exitAction->setStatusTip(tr("Exit application"));
+    connect(exitAction, &QAction::triggered, qApp, &QApplication::closeAllWindows);
+
     for (int i = 0; i < MaxRecentFiles; ++i) {
         recentFileActions[i] = new QAction(this);
         recentFileActions[i]->setVisible(false);
@@ -57,32 +69,40 @@ void MainWindow::createActions(){
     deleteAction->setIcon(QIcon(":/images/delete.png"));
     deleteAction->setShortcut(QKeySequence::Delete);
     deleteAction->setStatusTip(tr("Delete"));
-    connect(deleteAction, SIGNAL(triggered()), spreadsheet, SLOT(del);
+    connect(deleteAction, SIGNAL(triggered()), spreadsheet, SLOT(del));
 
     cutAction = new QAction(tr("Cut"), this);
     cutAction->setIcon(QIcon(":/images/cut.png"));
     cutAction->setShortcut(QKeySequence::Cut);
     cutAction->setStatusTip(tr("Cut"));
-    connect(exitAction, SIGNAL(triggered()), spreadsheet, SLOT(cut()));
+    connect(cutAction, SIGNAL(triggered()), spreadsheet, SLOT(cut()));
 
     copyAction = new QAction(tr("Copy"), this);
     copyAction->setIcon(QIcon(":/images/copy.png"));
     copyAction->setShortcut(QKeySequence::Copy);
     copyAction->setStatusTip(tr("Copy"));
-    connect(exitAction, SIGNAL(triggered()), spreadsheet, SLOT(copy()));
+    connect(copyAction, SIGNAL(triggered()), spreadsheet, SLOT(copy()));
 
     pasteAction = new QAction(tr("Paste"), this);
     pasteAction->setIcon(QIcon(":/images/paste.png"));
     pasteAction->setShortcut(QKeySequence::Paste);
     pasteAction->setStatusTip(tr("Paste"));
-    connect(exitAction, SIGNAL(triggered()), spreadsheet, SLOT(paste()));
+    connect(pasteAction, SIGNAL(triggered()), spreadsheet, SLOT(paste()));
+
+    selectRowAction = new QAction(tr("&Row"), this);
+    selectRowAction->setStatusTip(tr("Select current row cells in the spreadsheet"));
+    connect(selectRowAction, SIGNAL(triggered()), spreadsheet, SLOT(selectCurrentRow()));
+
+    selectColumnAction = new QAction(tr("&Column"), this);
+    selectColumnAction->setStatusTip(tr("Select current column cells in the spreadsheet"));
+    connect(selectColumnAction, SIGNAL(triggered()), spreadsheet, SLOT(selectCurrentColumn()));
 
     selectAllAction = new QAction(tr("&All"), this);
     selectAllAction->setShortcut(QKeySequence::SelectAll);
     selectAllAction->setStatusTip(tr("Select all the cells in the spreadsheet"));
     connect(selectAllAction, SIGNAL(triggered()), spreadsheet, SLOT(selectAll()));
 
-    showGridAction = new QAction(tr("&Show Grid"), this);
+    showGridAction = new QAction(tr("Show Grid"), this);
     showGridAction->setCheckable(true);
     showGridAction->setChecked(spreadsheet->showGrid());
     showGridAction->setStatusTip(tr("Show or hide the spreadsheet's grid"));
@@ -91,6 +111,32 @@ void MainWindow::createActions(){
     aboutQtAction = new QAction(tr("About &Qt"), this);
     aboutQtAction->setStatusTip(tr("Show the Qt library's About box"));
     connect(aboutQtAction, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
+
+    goToCellAction = new QAction(tr("Go to Cell"), this);
+    goToCellAction->setStatusTip(tr("Go to a cell by location"));
+    connect(goToCellAction, &QAction::triggered, this, &MainWindow::goToCell);
+
+    recalculateAction = new QAction(tr("Recalculate"), this);
+    recalculateAction->setStatusTip(tr("Recalculate spreadsheet"));
+    connect(recalculateAction, &QAction::triggered, spreadsheet, &Spreadsheet::recalculate);
+
+    sortAction = new QAction(tr("&Sort"), this);
+    sortAction->setStatusTip(tr("Sort the spreadsheet"));
+    connect(sortAction, &QAction::triggered, this, &MainWindow::sort);
+
+    autoRecalcAction = new QAction(tr("Autorecalculate"), this);
+    autoRecalcAction->setCheckable(true);
+    autoRecalcAction->setChecked(true);
+    autoRecalcAction->setStatusTip(tr("Turn on autorecalcuation"));
+    connect(autoRecalcAction, &QAction::toggled, spreadsheet, &Spreadsheet::setAutoRecalculate);
+
+    findAction = new QAction(tr("&Find"), this);
+    findAction->setStatusTip(tr("Search the document"));
+    connect(findAction, &QAction::triggered, this, &MainWindow::find);
+
+    aboutAction = new QAction(tr("&About"), this);
+    aboutAction->setStatusTip(tr("Show information about the app"));
+    connect(findAction, &QAction::triggered, this, &MainWindow::about);
 }
 
 void MainWindow::createMenus(){
@@ -188,19 +234,16 @@ void MainWindow::spreadsheetModified()
 
 void MainWindow::newFile()
 {
-    if (okToContinue()) {
-        spreadsheet->clear();
-        setCurrentFile("");
-    }
+    MainWindow *mainWin = new MainWindow;
+    mainWin->show();
 }
 
 bool MainWindow::okToContinue(){
     if (isWindowModified()) {
         int r = QMessageBox::warning(this, tr("Spreadsheet"),
-        tr("The document has been modified.\n"
-        "Do you want to save your changes?"),
-        QMessageBox::Yes | QMessageBox::No
-        | QMessageBox::Cancel);
+                                     tr("The document has been modified.\n"
+                                        "Do you want to save your changes?"),
+                                     QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
         if (r == QMessageBox::Yes) {
             return save();
         } else if (r == QMessageBox::Cancel) {
@@ -212,13 +255,20 @@ bool MainWindow::okToContinue(){
 
 void MainWindow::open()
 {
-    if (okToContinue()) {
-        QString fileName = QFileDialog::getOpenFileName(this,
-        tr("Open Spreadsheet"), ".",
-        tr("Spreadsheet files (*.sp)"));
-        if (!fileName.isEmpty())
-            loadFile(fileName);
-    }
+    bool alreadyOpen;
+    do {
+        alreadyOpen = false;
+        QString fileName = QFileDialog::getOpenFileName(this, tr("Open Spreadsheet"), ".",
+                                                        tr("Spreadsheet files (*.sp)"));
+        if (openFileList.contains(fileName)) {
+            QMessageBox::critical(this, tr("Spreadsheet"), tr("File open in another window"));
+            alreadyOpen = true;
+        }
+    } while (alreadyOpen == true);
+    if (!fileName.isEmpty())
+        loadFile(fileName);
+    else
+        QMessageBox::critical(this, tr("Spreadsheet"), tr("No file specified"));
 }
 
 bool MainWindow::loadFile(const QString &fileName)
@@ -254,9 +304,8 @@ bool MainWindow::saveFile(const QString &fileName)
 
 bool MainWindow::saveAs()
 {
-    QString fileName = QFileDialog::getSaveFileName(this,
-    tr("Save Spreadsheet"), ".",
-    tr("Spreadsheet files (*.sp)"));
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Save Spreadsheet"), ".",
+                                                    tr("Spreadsheet files (*.sp)"));
     if (fileName.isEmpty())
         return false;
     return saveFile(fileName);
@@ -266,6 +315,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 {
     if (okToContinue()) {
         writeSettings();
+        openFileList.removeAll(curFile);
         event->accept();
     } else {
         event->ignore();
@@ -277,9 +327,24 @@ void MainWindow::setCurrentFile(const QString &fileName)
     curFile = filename;
     setWindowModified(false);
     QString shownName = tr("Untitled");
+
+    //If multiple untitled (new) files are opened
+    for (int i = 0;; ++i) {
+        if (i != 0){
+            shownName.append(QString::number(i));
+        }
+        //this will never run with existing files due to check in open()
+        if (openFileList.contains(shownName))
+            shownName.remove(QString::number(i));
+        else
+            openFileList.append(shownName);
+            break;
+    }
+
     if (!curFile.isEmpty()) {
         //fileName is currently full path, we only want to display user readable name
         shownName = strippedName(curFile);
+        openFileList.append(curFile);
         recentFiles.removeAll(curFile);
         recentFiles.prepend(curFile);
         updateRecentFileActions();
@@ -296,9 +361,16 @@ QString MainWindow::strippedName(const QString &fullFileName)
 
 void MainWindow::updateRecentFileActions()
 {
+    foreach (QWidget *win, QApplication::topLevelWidgets()){
+        if (MainWindow *mainWin = qobject_cast<MainWindow *>(win))
+            mainWin->updateRecentFileActionsAll();
+}
+
+void MainWindow::updateRecentFileActionsAll()
+{
     QMutableStringListIterator i(recentFiles);
     while (i.hasNext()) {
-        if (!QFile::exists()(i.next()))
+        if (!QFile::exists(i.next()))
             i.remove();
     }
 
@@ -315,7 +387,8 @@ void MainWindow::updateRecentFileActions()
     separatorAction->setVisible(recentFiles.isEmpty());
 }
 
-void MainWindow::openRecentFile() {
+void MainWindow::openRecentFile()
+{
     if (okToContinue()) {
         QAction *action = qobject_cast<QAction*>(sender());
         if (action)
@@ -345,10 +418,6 @@ void MainWindow::goToCell()
     }
 }
 
-//
-// See p. 81
-//
-
 void MainWindow::sort()
 {
     Sortdialog dialog (this);
@@ -368,15 +437,37 @@ void MainWindow::sort()
 
 void MainWindow::about()
 {
-    QMessageBox::about(this, tr("About Spreadsheet"), tr("Cali or bust amirite"));
+    QMessageBox::about(this, tr("About Spreadsheet"), tr("Cali or bust"));
 }
 
 void MainWindow::writeSettings()
 {
-    QSettings settings("Software Inc.", "Spreadsheet");
+    QSettings settings("By Matthew May", "Spreadsheet");
 
     settings.setValue("geometry", saveGeometry());
     settings.setValue("recentFiles", recentFiles);
     settings.setValue("showGrid", showGridAction->isChecked());
     settings.setValue("autoRecalc", autoRecalcAction->isChecked());
 }
+
+void MainWindow::readSettings()
+{
+    QSettings settings("By Matthew May");
+
+    //
+    // If no default value saved (on startup), restore geometry will return false
+    // and Qt will automatically set geometry.
+    //
+    restoreGeometry(settings.value("geometry").toByteArray());
+
+    // If no settings file (startup), toStringList will return an empty list and recentFiles will be empty.
+    recentFiles = settings.value("recentFiles").toStringList();
+    updateRecentFileActions();
+
+    bool showGrid = settings.value("showGrid", true).toBool();
+    showGridAction->setChecked(showGrid);
+
+    bool autoRecalc = settings.value("autoRecalc", true).toBool();
+    autoRecalcAction->setChecked(autoRecalc);
+}
+

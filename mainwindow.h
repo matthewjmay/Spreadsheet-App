@@ -15,7 +15,7 @@ public:
     MainWindow();
 protected:
     void closeEvent(QCloseEvent *event);
-private slots:
+public slots:
     void newFile();
     void open();
     bool save();
@@ -40,14 +40,17 @@ private:
     bool saveFile(const QString &fileName);
     void setCurrentFile(const QString &fileName);
     void updateRecentFileActions();
+    // Called by updateRecentFileActions on every instance of the application
+    void updateRecentFileActionsAll();
     QString strippedName(const QString &fullFileName);
 
     Spreadsheet *spreadsheet;
     FindDialog *findDialog;
     QLabel *locationLabel;
     QLabel *formulaLabel;
-    QStringList recentFiles;
+    static QStringList recentFiles;
     QString curFile;
+    static QStringList openFileList;
 
     enum { MaxRecentFiles = 5 };
     QAction *recentFileActions[MaxRecentFiles];
@@ -55,6 +58,10 @@ private:
 
     QMenu *fileMenu;
     QMenu *editMenu;
+    QMenu *selectSubMenu;
+    QMenu *toolsMenu;
+    QMenu *helpMenu;
+    QMenu *optionsMenu;
     QToolBar *fileToolBar;
     QToolBar *editToolBar;
     QAction *newAction;
@@ -62,11 +69,19 @@ private:
     QAction *saveAction;
     QAction *saveAsAction;
     QAction *deleteAction;
+    QAction *closeAction;
     QAction *cutAction;
     QAction *copyAction;
     QAction *pasteAction;
     QAction *exitAction;
+    QAction *selectRowAction;
+    QAction *selectColumnAction;
     QAction *selectAllAction;
+    QAction *sortAction;
+    QAction *findAction;
+    QAction *goToCellAction;
+    QAction *aboutAction;
+    QAction *recalculateAction;
     QAction *showGridAction;
     QAction *autoRecalcAction;
     QAction *aboutQtAction;
