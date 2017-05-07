@@ -266,7 +266,9 @@ void MainWindow::open()
         }
     } while (alreadyOpen == true);
     if (!fileName.isEmpty())
-        loadFile(fileName);
+        MainWindow *mainWin = new MainWindow;
+        mainWin->show();
+        mainWin->loadFile(fileName)
     else
         QMessageBox::critical(this, tr("Spreadsheet"), tr("No file specified"));
 }
