@@ -10,8 +10,10 @@ QT       += core gui
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 # Input
 HEADERS += finddialog.h gotocell.h mainwindow.h sortdialog.h \
-    spreadsheet.h
+    spreadsheet.h \
+    cell.h
 FORMS += finddialog.ui gotocell.ui sortdialog.ui 
 SOURCES += finddialog.cpp gotocell.cpp main.cpp mainwindow.cpp sortdialog.cpp \
-    spreadsheet.cpp
-CONFIG += release
+    spreadsheet.cpp \
+    cell.cpp
+

@@ -9,6 +9,9 @@
 #include "gotocell.h"
 #include "spreadsheet.h"
 
+QStringList MainWindow::recentFiles;
+QStringList MainWindow::openFileList;
+
 MainWindow::MainWindow()
 {
     spreadsheet = new Spreadsheet;
@@ -69,7 +72,7 @@ void MainWindow::createActions(){
     deleteAction->setIcon(QIcon(":/images/delete.png"));
     deleteAction->setShortcut(QKeySequence::Delete);
     deleteAction->setStatusTip(tr("Delete"));
-    connect(deleteAction, SIGNAL(triggered()), spreadsheet, SLOT(del));
+    connect(deleteAction, SIGNAL(triggered()), spreadsheet, SLOT(del()));
 
     cutAction = new QAction(tr("Cut"), this);
     cutAction->setIcon(QIcon(":/images/cut.png"));
@@ -96,6 +99,11 @@ void MainWindow::createActions(){
     selectColumnAction = new QAction(tr("&Column"), this);
     selectColumnAction->setStatusTip(tr("Select current column cells in the spreadsheet"));
     connect(selectColumnAction, SIGNAL(triggered()), spreadsheet, SLOT(selectCurrentColumn()));
+
+    openAction = new QAction(tr("&Open"), this);
+    openAction->setShortcut(QKeySequence::Open);
+    openAction->setStatusTip(tr("Open a file"));
+    connect(openAction, SIGNAL(triggered()), this, SLOT(open()));
 
     selectAllAction = new QAction(tr("&All"), this);
     selectAllAction->setShortcut(QKeySequence::SelectAll);
@@ -136,7 +144,7 @@ void MainWindow::createActions(){
 
     aboutAction = new QAction(tr("&About"), this);
     aboutAction->setStatusTip(tr("Show information about the app"));
-    connect(findAction, &QAction::triggered, this, &MainWindow::about);
+    connect(aboutAction, &QAction::triggered, this, &MainWindow::about);
 }
 
 void MainWindow::createMenus(){
@@ -256,19 +264,21 @@ bool MainWindow::okToContinue(){
 void MainWindow::open()
 {
     bool alreadyOpen;
+    QString fileName;
     do {
         alreadyOpen = false;
-        QString fileName = QFileDialog::getOpenFileName(this, tr("Open Spreadsheet"), ".",
+        fileName = QFileDialog::getOpenFileName(this, tr("Open Spreadsheet"), ".",
                                                         tr("Spreadsheet files (*.sp)"));
         if (openFileList.contains(fileName)) {
             QMessageBox::critical(this, tr("Spreadsheet"), tr("File open in another window"));
             alreadyOpen = true;
         }
     } while (alreadyOpen == true);
-    if (!fileName.isEmpty())
-        MainWindow *mainWin = new MainWindow;
-        mainWin->show();
-        mainWin->loadFile(fileName)
+    if (!fileName.isEmpty()) {
+        MainWindow *m = new MainWindow;
+        m->show();
+        m->loadFile(fileName);
+    }
     else
         QMessageBox::critical(this, tr("Spreadsheet"), tr("No file specified"));
 }
@@ -326,7 +336,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::setCurrentFile(const QString &fileName)
 {
-    curFile = filename;
+    curFile = fileName;
     setWindowModified(false);
     QString shownName = tr("Untitled");
 
@@ -366,10 +376,12 @@ void MainWindow::updateRecentFileActions()
     foreach (QWidget *win, QApplication::topLevelWidgets()){
         if (MainWindow *mainWin = qobject_cast<MainWindow *>(win))
             mainWin->updateRecentFileActionsAll();
+    }
 }
 
 void MainWindow::updateRecentFileActionsAll()
 {
+
     QMutableStringListIterator i(recentFiles);
     while (i.hasNext()) {
         if (!QFile::exists(i.next()))
@@ -394,7 +406,7 @@ void MainWindow::openRecentFile()
     if (okToContinue()) {
         QAction *action = qobject_cast<QAction*>(sender());
         if (action)
-            loadFile(action->data.toString());
+            loadFile(action->data().toString());
     }
 }
 
@@ -403,7 +415,7 @@ void MainWindow::find()
     if (!findDialog) {
         findDialog = new FindDialog(this);
         connect(findDialog, &FindDialog::findNext, spreadsheet, &Spreadsheet::findNext);
-        connect(findDialog, &FindDialog::findPrev, spreadsheet, &Spreadsheet::findPrev);
+        connect(findDialog, &FindDialog::findPrev, spreadsheet, &Spreadsheet::findPrevious);
     }
     findDialog->show();
     findDialog->raise();
@@ -427,7 +439,7 @@ void MainWindow::sort()
     dialog.setColumnRange('A' + range.leftColumn(), 'A' + range.rightColumn());
     if (dialog.exec()) {
         SpreadsheetCompare compare;
-        compare.keys[0] = dialog.PrimarycomboBox>currentIndex();
+        compare.keys[0] = dialog.PrimarycomboBox->currentIndex();
         compare.keys[1] = dialog.SecondarycomboBox->currentIndex() - 1;
         compare.keys[2] = dialog.TertiarycomboBox->currentIndex() - 1;
         compare.ascending[0] = (dialog.PrimaryorderBox->currentIndex() == 0);

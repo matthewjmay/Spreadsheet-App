@@ -2,7 +2,8 @@
 #define SPREADSHEET_H
 
 #include <QTableWidget>
-
+class SpreadsheetCompare;
+class Cell;
 class Spreadsheet : public QTableWidget
 {
     Q_OBJECT

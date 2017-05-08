@@ -61,7 +61,7 @@ void Spreadsheet::setFormula(int row, int column, const QString &formula)
     Cell *c = cell(row, column);
     if (!c) {
         c = new Cell;
-        setItem (row, column, c);
+        setItem(row, column, c);
     }
     c->setFormula(formula);
 }
@@ -83,7 +83,7 @@ void Spreadsheet::somethingChanged()
     emit modified();
 }
 
-bool Spreadsheet::writeFile(const QString &filename)
+bool Spreadsheet::writeFile(const QString &fileName)
 {
     QFile file(fileName);
     if (!file.open(QIODevice::WriteOnly)) {
@@ -92,7 +92,7 @@ bool Spreadsheet::writeFile(const QString &filename)
         return false;
     }
     QDataStream out(&file);
-    out.setVersion(QDataStream::Qt_5_7);
+    out.setVersion(QDataStream::Qt_5_0);
 
     out << quint32(MagicNumber);
 
@@ -110,7 +110,7 @@ bool Spreadsheet::writeFile(const QString &filename)
 
 bool Spreadsheet::readFile(const QString &fileName)
 {
-    QFile file(filename);
+    QFile file(fileName);
     if (!file.open(QIODevice::ReadOnly)) {
         QMessageBox::warning(this, tr("Spreadsheet"), tr("Cannot read file %1:\n%2")
                              .arg(file.fileName()).arg(file.errorString()));
@@ -118,7 +118,7 @@ bool Spreadsheet::readFile(const QString &fileName)
     }
 
     QDataStream in (&file);
-    in.setVersion(QDataStream::Qt_5_7);
+    in.setVersion(QDataStream::Qt_5_0);
     quint32 magic;
     in >> magic;
     if (magic != MagicNumber){
@@ -152,10 +152,10 @@ void Spreadsheet::copy()
 
     for (int i = 0; i < range.rowCount(); ++i) {
         if (i > 0)
-            str += "/n";
-        for (int j = 0; j<range.columnCount(); ++j) {
+            str += "\n";
+        for (int j = 0; j < range.columnCount(); ++j) {
             if (j > 0)
-                str +="/t";
+                str +="\t";
             str += formula(range.topRow() + i, range.leftColumn() + j);
         }
     }
@@ -168,7 +168,7 @@ void Spreadsheet::copy()
 //
 QTableWidgetSelectionRange Spreadsheet::selectedRange() const
 {
-    QList<QTablgeWidgetSelectionRange> ranges = selectedRanges();
+    QList<QTableWidgetSelectionRange> ranges = selectedRanges();
     if (ranges.isEmpty())
         return QTableWidgetSelectionRange();
     return ranges.first();
@@ -180,7 +180,7 @@ void Spreadsheet::paste()
     QString str = QApplication::clipboard()->text();
     QStringList rows = str.split('\n');
     int numRows = rows.count();
-    int numColumns = rows.first.count('\t') + 1;
+    int numColumns = rows.first().count('\t') + 1;
 
     if ((range.rowCount() * range.columnCount() != 1) &&
         (range.rowCount() != numRows || range.columnCount() != numColumns)) {
@@ -224,7 +224,7 @@ void Spreadsheet::selectCurrentColumn()
 void Spreadsheet::findNext(const QString &str, Qt::CaseSensitivity cs)
 {
     int row = currentRow();
-    int column = currentColumn + 1;
+    int column = currentColumn() + 1;
 
     while (row < RowCount) {
         while (column < ColumnCount) {
@@ -244,7 +244,7 @@ void Spreadsheet::findNext(const QString &str, Qt::CaseSensitivity cs)
                                     tr("The end of the document has been reached. \n"
                                        "Would you like to continue seaching at the beginning?"),
                                     QMessageBox::Yes | QMessageBox::No);
-    if (res = QMessageBox::Yes){
+    if (res == QMessageBox::Yes){
         setCurrentCell(0, 0);
         findNext(str, cs);
     }
@@ -252,7 +252,7 @@ void Spreadsheet::findNext(const QString &str, Qt::CaseSensitivity cs)
 
 void Spreadsheet::findPrevious(const QString &str, Qt::CaseSensitivity cs) {
     int row = currentRow();
-    int column = currentColumn + 1;
+    int column = currentColumn() + 1;
 
     while (row >= 0) {
         while (column >= 0) {
@@ -272,7 +272,7 @@ void Spreadsheet::findPrevious(const QString &str, Qt::CaseSensitivity cs) {
                                     tr("The beginning of the document has been reached. \n"
                                        "Would you like to continue seaching at the end?"),
                                     QMessageBox::Yes | QMessageBox::No);
-    if (res = QMessageBox::Yes) {
+    if (res == QMessageBox::Yes) {
         setCurrentCell(RowCount - 1, ColumnCount - 1);
         findPrevious(str, cs);
     }
@@ -322,7 +322,7 @@ void Spreadsheet::sort(const SpreadsheetCompare &compare)
 
 bool SpreadsheetCompare::operator()(const QStringList &row1, const QStringList &row2) const
 {
-    for (int i = 0; i < Keycount; ++i) {
+    for (int i = 0; i < KeyCount; ++i) {
         int column = keys[i];
         if (column != -1) {
             if (row1[column] != row2[column]) {
