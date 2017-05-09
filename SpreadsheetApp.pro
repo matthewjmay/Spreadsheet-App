@@ -16,4 +16,5 @@ FORMS += finddialog.ui gotocell.ui sortdialog.ui
 SOURCES += finddialog.cpp gotocell.cpp main.cpp mainwindow.cpp sortdialog.cpp \
     spreadsheet.cpp \
     cell.cpp
+RESOURCES = sources.qrc
 
