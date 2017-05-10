@@ -102,6 +102,7 @@ void MainWindow::createActions(){
 
     openAction = new QAction(tr("&Open"), this);
     openAction->setShortcut(QKeySequence::Open);
+    openAction->setIcon(QIcon(":/images/open.png"));
     openAction->setStatusTip(tr("Open a file"));
     connect(openAction, SIGNAL(triggered()), this, SLOT(open()));
 
@@ -121,6 +122,7 @@ void MainWindow::createActions(){
     connect(aboutQtAction, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
 
     goToCellAction = new QAction(tr("Go to Cell"), this);
+    goToCellAction->setIcon(QIcon(":/images/goto.png"));
     goToCellAction->setStatusTip(tr("Go to a cell by location"));
     connect(goToCellAction, &QAction::triggered, this, &MainWindow::goToCell);
 
@@ -140,6 +142,7 @@ void MainWindow::createActions(){
 
     findAction = new QAction(tr("&Find"), this);
     findAction->setStatusTip(tr("Search the document"));
+    findAction->setIcon(QIcon(":/images/find.png"));
     connect(findAction, &QAction::triggered, this, &MainWindow::find);
 
     aboutAction = new QAction(tr("&About"), this);
@@ -328,6 +331,8 @@ void MainWindow::closeEvent(QCloseEvent *event)
     if (okToContinue()) {
         writeSettings();
         openFileList.removeAll(curFile);
+        if (curFile.isEmpty())
+                openFileList.removeAll(newName);
         event->accept();
     } else {
         event->ignore();
@@ -340,26 +345,30 @@ void MainWindow::setCurrentFile(const QString &fileName)
     setWindowModified(false);
     QString shownName = tr("Untitled");
 
-    //If multiple untitled (new) files are opened
-    for (int i = 0;; ++i) {
-        if (i != 0){
-            shownName.append(QString::number(i));
-        }
-        //this will never run with existing files due to check in open()
-        if (openFileList.contains(shownName))
-            shownName.remove(QString::number(i));
-        else
-            openFileList.append(shownName);
-            break;
-    }
-
     if (!curFile.isEmpty()) {
         //fileName is currently full path, we only want to display user readable name
         shownName = strippedName(curFile);
         openFileList.append(curFile);
         recentFiles.removeAll(curFile);
         recentFiles.prepend(curFile);
+        newName = "";
         updateRecentFileActions();
+    } else {
+        //If multiple untitled (new) files are opened
+        for (int i = 0;; ++i) {
+            if (i != 0){
+                shownName.append(QString::number(i));
+            }
+            //this will never run with existing files due to check in open()
+            if (openFileList.contains(shownName))
+                shownName.remove(QString::number(i));
+            else {
+                openFileList.append(shownName);
+                newName = shownName;
+                break;
+            }
+
+        }
     }
 
     setWindowTitle(tr("%1[*] - %2").arg(shownName).arg(tr("Spreadsheet")));

@@ -50,6 +50,7 @@ private:
     QLabel *formulaLabel;
     static QStringList recentFiles;
     QString curFile;
+    QString newName;
     static QStringList openFileList;
 
     enum { MaxRecentFiles = 5 };
